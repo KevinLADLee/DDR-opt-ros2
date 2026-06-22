@@ -1,4 +1,4 @@
-std_msgs/Header Header
+std_msgs/Header header
 
 float64 moment
 float64 max_moment

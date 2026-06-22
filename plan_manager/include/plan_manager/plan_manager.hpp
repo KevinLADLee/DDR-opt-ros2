@@ -5,6 +5,7 @@
 #include "visualizer/visualizer.hpp"
 #include "front_end/jps_planner/jps_planner.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/Vector3.h"
 #include "back_end/optimizer.h"
 #include "tf/tf.h"
 #include "tf/transform_datatypes.h"
@@ -126,15 +127,15 @@ class PlanManager
       if(state_machine_ == REPLAN) ROS_INFO("state_machine_ == REPLAN");
     }
 
-    // void GeometryCallback(const carstatemsgs::CarState::ConstPtr &msg){
+    // void GeometryCallback(const carstatemsgs::CarState::ConstSharedPtr &msg){
     //   have_geometry_ = true;
     //   current_state_XYTheta_ << msg->x, msg->y, msg->yaw;
     //   current_state_VAJ_ << msg->v, msg->a, msg->js;
     //   current_state_OAJ_ << msg->omega, msg->alpha, msg->jyaw;
-    //   current_time_ = msg->Header.stamp;
+    //   current_time_ = msg->header.stamp;
     // }
 
-    void GeometryCallback(const nav_msgs::Odometry::ConstPtr &msg){
+    void GeometryCallback(const nav_msgs::Odometry::ConstSharedPtr &msg){
       have_geometry_ = true;
       current_state_XYTheta_ << msg->pose.pose.position.x, msg->pose.pose.position.y, tf::getYaw(msg->pose.pose.orientation);
       current_state_VAJ_ << 0.0, 0.0, 0.0;
@@ -143,7 +144,7 @@ class PlanManager
     }
 
 
-    void goal_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
+    void goal_callback(const geometry_msgs::PoseStamped::ConstSharedPtr &msg){
       // Ignore the given goal at runtime, commenting out this check may cause unexpected bugs
       // Especially when there is no re-planning
       if(state_machine_ != StateMachine::IDLE){
@@ -170,6 +171,10 @@ class PlanManager
     void MainThread(const ros::TimerEvent& event){
       
       if(!have_geometry_ || !have_goal_) return;
+      if(!sdfmap_->hasMap() || !sdfmap_->hasESDF()){
+        ROS_WARN_THROTTLE(1.0, "Waiting for SDF map before planning.");
+        return;
+      }
 
       // collision check
       if(have_geometry_){
@@ -396,9 +401,9 @@ class PlanManager
       polynome.start_position.z = iniStateXYTheta.z();
 
       if(!msplanner_->if_standard_diff_){
-        polynome.ICR.x = msplanner_->ICR_.x();
-        polynome.ICR.y = msplanner_->ICR_.y();
-        polynome.ICR.z = msplanner_->ICR_.z();
+        polynome.icr.x = msplanner_->ICR_.x();
+        polynome.icr.y = msplanner_->ICR_.y();
+        polynome.icr.z = msplanner_->ICR_.z();
       }
       
       mpc_polynome_pub_.publish(polynome);

@@ -3,6 +3,7 @@
 
 #include "ros/forwards.h"
 #include "visualization_msgs/MarkerArray.h"
+#include <algorithm>
 #include <cmath>
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -25,7 +26,10 @@
 #include <tf/transform_datatypes.h>
 
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/ColorRGBA.h>
 
 class Simulation{
     private:
@@ -200,7 +204,7 @@ class Simulation{
 
         }
 
-        void PoseSubCallback(const carstatemsgs::CarState::ConstPtr &msg){
+        void PoseSubCallback(const carstatemsgs::CarState::ConstSharedPtr &msg){
 
             if(fabs(msg->v - current_SVAJ_[1]) > max_a_ * Pose_pub_rate_){
                 current_SVAJ_.tail(3) << current_SVAJ_[1] + Pose_pub_rate_ * max_a_ * (msg->v - current_SVAJ_[1])/fabs(msg->v - current_SVAJ_[1]),
@@ -228,11 +232,11 @@ class Simulation{
                 current_YOAJ_[1] += distributiono(gen);
             }
 
-            current_time_ = msg->Header.stamp;
+            current_time_ = msg->header.stamp;
         }
 
-        void ControlSubCallback(const carstatemsgs::CarControl::ConstPtr &msg){
-            current_time_ = msg->Header.stamp;
+        void ControlSubCallback(const carstatemsgs::CarControl::ConstSharedPtr &msg){
+            current_time_ = msg->header.stamp;
             double left_wheel_ome = msg->left_wheel_ome;
             double right_wheel_ome = msg->right_wheel_ome;
             desired_v_ = (left_wheel_ome + right_wheel_ome) / 2.0 - (right_wheel_ome - left_wheel_ome)/(ICR_yl_ - ICR_yr_) * (ICR_yl_ + ICR_yr_)/2.0;
@@ -302,8 +306,8 @@ class Simulation{
 
         void PosePubCallback(const ros::TimerEvent& event){
             carstatemsgs::CarState carstate;
-            carstate.Header.frame_id = "world";
-            carstate.Header.stamp = ros::Time::now();
+            carstate.header.frame_id = "world";
+            carstate.header.stamp = ros::Time::now();
             carstate.x = current_XYTheta_.x();
             carstate.y = current_XYTheta_.y();
             carstate.yaw = current_XYTheta_.z();
@@ -321,8 +325,8 @@ class Simulation{
             Pose_pub_.publish(carstate);
 
             carstatemsgs::SimulatedCarState simcarstate;
-            simcarstate.Header.frame_id = "world";
-            simcarstate.Header.stamp = ros::Time::now();
+            simcarstate.header.frame_id = "world";
+            simcarstate.header.stamp = ros::Time::now();
             simcarstate.x = current_XYTheta_.x();
             simcarstate.y = current_XYTheta_.y();
             simcarstate.yaw = current_XYTheta_.z();
@@ -333,23 +337,23 @@ class Simulation{
             simcarstate.vy = current_vy_;
             simcarstate.vx = current_SVAJ_[1];
 
-            simcarstate.ICR_xv = ICR_xv_;
-            simcarstate.ICR_yl = ICR_yl_;
-            simcarstate.ICR_yr = ICR_yr_;
+            simcarstate.icr_xv = ICR_xv_;
+            simcarstate.icr_yl = ICR_yl_;
+            simcarstate.icr_yr = ICR_yr_;
 
             Simcarstate_pub_.publish(simcarstate);
 
             carstatemsgs::CarControl carcontrol;
-            carcontrol.Header.frame_id = "world";
-            carcontrol.Header.stamp = ros::Time::now();
+            carcontrol.header.frame_id = "world";
+            carcontrol.header.stamp = ros::Time::now();
             carcontrol.left_wheel_ome = simcarstate.vx - current_YOAJ_[1] * ICR_yl_;
             carcontrol.right_wheel_ome = simcarstate.vx - current_YOAJ_[1] * ICR_yr_;
             Control_pub_.publish(carcontrol);
 
 
             carstatemsgs::KinematicState kinematicstate;
-            kinematicstate.Header.frame_id = "world";
-            kinematicstate.Header.stamp = ros::Time::now();
+            kinematicstate.header.frame_id = "world";
+            kinematicstate.header.stamp = ros::Time::now();
             kinematicstate.centripetal_acc = current_YOAJ_[1] * current_SVAJ_[1];
             kinematicstate.max_centripetal_acc = max_centripetal_acc_;
             kinematicstate.min_centripetal_acc = -max_centripetal_acc_;
@@ -396,7 +400,7 @@ class Simulation{
             marker.id = 0;
             marker.pose.position.x = (R*offset).x() + current_XYTheta_.x();
             marker.pose.position.y = (R*offset).y() + current_XYTheta_.y();
-            marker.pose.position.z = height_/2-0.32;
+            marker.pose.position.z = std::max(0.08, height_ * 0.5);
             marker.color.a = 0.8;
             marker.color.r = 0.3;
             marker.color.g = 0.3;
@@ -409,6 +413,24 @@ class Simulation{
             marker.pose.orientation.z = q.z();
             marker.pose.orientation.w = q.w();
 
+            rviz_marker_array.markers.push_back(marker);
+
+            marker.mesh_resource.clear();
+            marker.ns = "rvizCarFootprint";
+            marker.id = 1;
+            marker.type = visualization_msgs::Marker::CUBE;
+            marker.action = visualization_msgs::Marker::ADD;
+            marker.pose.position.x = current_XYTheta_.x();
+            marker.pose.position.y = current_XYTheta_.y();
+            marker.pose.position.z = 0.04;
+            marker.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+            marker.scale.x = length_;
+            marker.scale.y = width_;
+            marker.scale.z = 0.08;
+            marker.color.a = 0.95;
+            marker.color.r = 0.1;
+            marker.color.g = 0.35;
+            marker.color.b = 1.0;
             rviz_marker_array.markers.push_back(marker);
 
             Rviz_pub_.publish(rviz_marker_array);
@@ -441,8 +463,7 @@ class Simulation{
             geometry_msgs::Point p;
             p.x = current_XYTheta_.x();
             p.y = current_XYTheta_.y();
-            // p.z = height_/2;
-            p.z = 100.0;
+            p.z = 0.05;
             accu_traj_.points.push_back(p);
 
 
@@ -527,7 +548,7 @@ class Simulation{
             accu_traj_.colors.clear();
         }
 
-        void changeParamCallback(const geometry_msgs::Point::ConstPtr& msg){
+        void changeParamCallback(const geometry_msgs::Point::ConstSharedPtr& msg){
             if(msg->x > 0){
                 ROS_ERROR("error! msg->x > 0 || ICR_yr_ should smaller than 0");
             }
@@ -541,7 +562,7 @@ class Simulation{
 
         }
 
-        void EKFPreciseCallback(const geometry_msgs::PointStamped::ConstPtr& msg){
+        void EKFPreciseCallback(const geometry_msgs::PointStamped::ConstSharedPtr& msg){
             PreciseChi_ = msg->point.x;
             PreciseChiConv_ = msg->point.y;
         }

@@ -1,47 +1,53 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(back_end)
 
-set(CMAKE_CXX_FLAGS "-std=c++17")
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fPIC")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(catkin REQUIRED COMPONENTS
-  front_end
-  geometry_msgs
-  plan_env
-  roscpp
-  sensor_msgs
-  std_msgs
-  visualization_msgs
-)
-
-find_package(cmake_modules REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(ddr_opt_ros2_compat REQUIRED)
+find_package(front_end REQUIRED)
+find_package(plan_env REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 
-catkin_package(
- INCLUDE_DIRS include
- LIBRARIES back_end
- CATKIN_DEPENDS front_end geometry_msgs plan_env roscpp sensor_msgs std_msgs visualization_msgs
-#  DEPENDS system_lib
-)
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
+add_library(back_end src/optimizer.cpp)
+target_compile_features(back_end PUBLIC cxx_std_17)
+target_compile_options(back_end PRIVATE -O3 -Wall -fPIC)
+target_include_directories(back_end PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
   ${PCL_INCLUDE_DIRS}
-  include
 )
-
-
-add_library( back_end 
-  src/optimizer.cpp 
+ament_target_dependencies(back_end
+  rclcpp front_end plan_env geometry_msgs nav_msgs sensor_msgs std_msgs
+  visualization_msgs tf2 tf2_geometry_msgs pcl_conversions ddr_opt_ros2_compat
 )
+target_link_libraries(back_end Eigen3::Eigen ${PCL_LIBRARIES})
 
-# add_executable(global_planning src/global_planning.cpp)
+install(TARGETS back_end
+  EXPORT export_back_end
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY config/ DESTINATION share/${PROJECT_NAME}/config)
 
-# target_link_libraries(global_planning
-#   ${OMPL_LIBRARIES}
-#   ${catkin_LIBRARIES}
-# )
+ament_export_targets(export_back_end HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  rclcpp front_end plan_env geometry_msgs nav_msgs sensor_msgs std_msgs
+  visualization_msgs tf2 tf2_geometry_msgs pcl_conversions ddr_opt_ros2_compat Eigen3
+)
+ament_package()

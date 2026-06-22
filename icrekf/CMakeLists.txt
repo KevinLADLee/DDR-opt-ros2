@@ -1,41 +1,34 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(icrekf)
 
-set(CMAKE_CXX_FLAGS "-std=c++14")
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fPIC")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
-find_package(catkin REQUIRED COMPONENTS
-  carstatemsgs
-  geometry_msgs
-  roscpp
-  std_msgs
-  visualization_msgs
-)
-
-find_package(cmake_modules REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(ddr_opt_ros2_compat REQUIRED)
+find_package(carstatemsgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-catkin_package(
- INCLUDE_DIRS include
- LIBRARIES icrekf
- CATKIN_DEPENDS carstatemsgs geometry_msgs roscpp std_msgs visualization_msgs
+add_executable(icrekf src/icrekf_node.cpp src/icrekf.cpp)
+target_compile_features(icrekf PRIVATE cxx_std_17)
+target_compile_options(icrekf PRIVATE -O3 -Wall -fPIC)
+target_include_directories(icrekf PRIVATE include)
+ament_target_dependencies(icrekf
+  rclcpp carstatemsgs geometry_msgs nav_msgs std_msgs visualization_msgs
+  tf2 tf2_geometry_msgs ddr_opt_ros2_compat
 )
+target_link_libraries(icrekf Eigen3::Eigen)
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-  ${Eigen3_INCLUDE_DIRS}
-)
-include_directories("/usr/include/eigen3")
+install(TARGETS icrekf DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY include/ DESTINATION include)
 
-add_executable(icrekf 
-  src/icrekf_node.cpp
-  src/icrekf.cpp
-)
-
-target_link_libraries(icrekf
-  ${catkin_LIBRARIES}
-)
+ament_package()

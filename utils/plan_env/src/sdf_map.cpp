@@ -1,19 +1,20 @@
 #include "plan_env/sdf_map.h"
 
-// void SDFmap::odomCallback(const carstatemsgs::CarState::ConstPtr &msg){
+// void SDFmap::odomCallback(const carstatemsgs::CarState::ConstSharedPtr &msg){
 //   odom_ = *msg;
 //   has_odom_ = true;
 // }
 
-void SDFmap::pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg){
-  static tf2_ros::Buffer tf_buffer(ros::Duration(10.0));
-  static tf2_ros::TransformListener tf_listener(tf_buffer);
+void SDFmap::pointCloudCallback(const sensor_msgs::PointCloud2::ConstSharedPtr &msg){
+  static auto node = ros::NodeHandle().node();
+  static tf2_ros::Buffer tf_buffer(node->get_clock());
+  static tf2_ros::TransformListener tf_listener(tf_buffer, node, true);
 
   // Get transformation information
   geometry_msgs::TransformStamped transformStamped;
   try {
       transformStamped = tf_buffer.lookupTransform("world", msg->header.frame_id,
-                                                  msg->header.stamp, ros::Duration(0.1));
+                                                  msg->header.stamp, tf2::durationFromSec(0.1));
   } catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
       return;

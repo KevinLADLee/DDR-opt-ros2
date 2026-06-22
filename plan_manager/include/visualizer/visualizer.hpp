@@ -57,7 +57,7 @@ class Visualizer
     ~Visualizer(){};
 
     // Only the end point
-    void finalnodePub(const geometry_msgs::PoseStamped::ConstPtr &msg){
+    void finalnodePub(const geometry_msgs::PoseStamped::ConstSharedPtr &msg){
       visualization_msgs::Marker marker;
       marker.header.frame_id = "world";
       marker.ns = "finalnode";

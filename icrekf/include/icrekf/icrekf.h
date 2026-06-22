@@ -182,9 +182,9 @@ class ICREKF{
 
         }
 
-        void PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstPtr &msg);
-        void ControlSubCallback(const carstatemsgs::CarControl::ConstPtr &msg);
-        void PoseOdomSubCallback(const nav_msgs::Odometry::ConstPtr &msg);
+        void PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstSharedPtr &msg);
+        void ControlSubCallback(const carstatemsgs::CarControl::ConstSharedPtr &msg);
+        void PoseOdomSubCallback(const nav_msgs::Odometry::ConstSharedPtr &msg);
 
         void get_forecast_x(Eigen::VectorXd& _x, Eigen::MatrixXd& _conv, const Eigen::Vector2d& input_u, const double& u_duration);
 

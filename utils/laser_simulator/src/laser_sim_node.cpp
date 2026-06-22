@@ -39,7 +39,9 @@
 #include <iostream>
 #include <pcl/search/impl/kdtree.hpp>
 #include <vector>
+#include <geometry_msgs/Point.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
 
 #include <carstatemsgs/CarState.h>
 #include <tf/transform_datatypes.h>
@@ -50,7 +52,6 @@ using std::vector;
 
 ros::Publisher _snesor_range_publisher;
 ros::Publisher _pub_cloud;
-ros::Publisher _tf_broadcaster;
 ros::Subscriber _odom_sub;
 ros::Subscriber _global_map_sub;
 ros::Timer _local_sensing_timer;
@@ -254,7 +255,7 @@ void visRange()
 //  *
 //  * @param laser_odom laser odometry
 //  */
-// void rcvOdometryCallbck(const nav_msgs::Odometry::ConstPtr &laser_odom)
+// void rcvOdometryCallbck(const nav_msgs::Odometry::ConstSharedPtr &laser_odom)
 // {
 //   _has_odom = true;
 //   _odom.pose = laser_odom->pose;
@@ -287,21 +288,22 @@ void visRange()
  *
  * @param laser_odom laser odometry
  */
-void rcvOdometryCallbck(const carstatemsgs::CarState::ConstPtr &laser_odom)
+void rcvOdometryCallbck(const carstatemsgs::CarState::ConstSharedPtr &laser_odom)
 {
   _has_odom = true;
   _odom.pose.pose.position.x = laser_odom->x;
   _odom.pose.pose.position.y = laser_odom->y;
   _odom.pose.pose.position.z = 0.0;
   _odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(laser_odom->yaw);
-  _odom.header.stamp = laser_odom->Header.stamp;
+  _odom.header.stamp = laser_odom->header.stamp;
 
   // maintain tf: world->laser
-  static tf2_ros::TransformBroadcaster _br_world_laser;
+  static auto _br_world_laser =
+    std::make_shared<tf2_ros::TransformBroadcaster>(ros::NodeHandle().node());
   geometry_msgs::TransformStamped _transformStamped;
-  _transformStamped.header.stamp = laser_odom->Header.stamp;
-  if (laser_odom->Header.frame_id.size())
-    _transformStamped.header.frame_id = laser_odom->Header.frame_id;
+  _transformStamped.header.stamp = laser_odom->header.stamp;
+  if (laser_odom->header.frame_id.size())
+    _transformStamped.header.frame_id = laser_odom->header.frame_id;
   else
     _transformStamped.header.frame_id = "world";
   _transformStamped.child_frame_id = "laser";
@@ -309,9 +311,7 @@ void rcvOdometryCallbck(const carstatemsgs::CarState::ConstPtr &laser_odom)
   _transformStamped.transform.translation.y = laser_odom->y;
   _transformStamped.transform.translation.z = 0.0;
   _transformStamped.transform.rotation = tf::createQuaternionMsgFromYaw(laser_odom->yaw);
-  _br_world_laser.sendTransform(_transformStamped);
-
-  _tf_broadcaster.publish(_transformStamped);
+  _br_world_laser->sendTransform(_transformStamped);
 
   // visualize sensor range
   visRange();
@@ -320,7 +320,7 @@ void rcvOdometryCallbck(const carstatemsgs::CarState::ConstPtr &laser_odom)
 
 
 
-void rcvGlobalPointCloudCallBack(const sensor_msgs::PointCloud2 &pointcloud_map)
+void rcvGlobalPointCloudCallBack(const sensor_msgs::PointCloud2::ConstSharedPtr &pointcloud_map)
 {
   if (_has_global_map)
     return;
@@ -328,7 +328,7 @@ void rcvGlobalPointCloudCallBack(const sensor_msgs::PointCloud2 &pointcloud_map)
   ROS_WARN("Global Pointcloud received..");
 
   pcl::PointCloud<pcl::PointXYZ> cloud_input;
-  pcl::fromROSMsg(pointcloud_map, cloud_input);
+  pcl::fromROSMsg(*pointcloud_map, cloud_input);
 
   _voxel_sampler.setLeafSize(_pc_resolution, _pc_resolution, _pc_resolution);
   _voxel_sampler.setInputCloud(cloud_input.makeShared());
@@ -570,11 +570,10 @@ int main(int argc, char **argv)
   nh.getParam(ros::this_node::getName()+"/map_topic", map_topic);
   nh.getParam(ros::this_node::getName()+"/odom_topic", odom_topic);
   nh.getParam(ros::this_node::getName()+"/laser_pcd_topic", laser_pcd_topic);
-  _global_map_sub = nh.subscribe(map_topic, 1, rcvGlobalPointCloudCallBack);
-  _odom_sub = nh.subscribe(odom_topic, 50, rcvOdometryCallbck);
+  _global_map_sub = nh.subscribe<sensor_msgs::PointCloud2>(map_topic, 1, rcvGlobalPointCloudCallBack);
+  _odom_sub = nh.subscribe<carstatemsgs::CarState>(odom_topic, 50, rcvOdometryCallbck);
   _pub_cloud = nh.advertise<sensor_msgs::PointCloud2>(laser_pcd_topic, 10);
   _snesor_range_publisher = nh.advertise<visualization_msgs::MarkerArray>("laser_range", 1);
-  _tf_broadcaster = nh.advertise<geometry_msgs::TransformStamped>("tf", 10);
   double sensing_duration = 1.0 / _sensing_rate;
 
   bool _use_perspective;

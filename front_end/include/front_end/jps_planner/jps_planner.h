@@ -7,6 +7,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/tf.h>
 

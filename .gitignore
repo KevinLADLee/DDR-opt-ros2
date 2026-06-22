@@ -33,3 +33,7 @@
 
 ./CMakeLists.txt
 .vscode
+
+/build/
+/install/
+/log/

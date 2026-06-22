@@ -92,7 +92,7 @@ class GlobalMap{
             pub_laser_gridmap_ = nh_.advertise<sensor_msgs::PointCloud2>("/global_map/laser_gridmap", 1);
             pub_surf_ = nh_.advertise<sensor_msgs::PointCloud2>("/global_map/surf", 1);
 
-            timer_pub_gridmap_ = nh_.createTimer(ros::Duration(1.0), boost::bind(&GlobalMap::publish_gridmap, this));
+            timer_pub_gridmap_ = nh_.createTimer(ros::Duration(1.0), [this]() { publish_gridmap(); });
 
             nh_.param<double>(ros::this_node::getName()+"/laser_gridmap_interval",laser_grid_interval_,0.01);
             inv_laser_grid_interval_ = 1/laser_grid_interval_;

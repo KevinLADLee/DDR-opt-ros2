@@ -69,7 +69,7 @@ MpcController::MpcController(const ros::NodeHandle &nh){
     start_time = -1;
 }
 
-// void MpcController::OdomCallback(const carstatemsgs::CarState::ConstPtr& msg){    
+// void MpcController::OdomCallback(const carstatemsgs::CarState::ConstSharedPtr& msg){    
 //     has_odom = true;
 
 //     now_state.x = msg->x;
@@ -78,10 +78,10 @@ MpcController::MpcController(const ros::NodeHandle &nh){
 //     now_state.v = msg->v;
 //     now_state.w = msg->omega;
 
-//     now_state_time_ = msg->Header.stamp;
+//     now_state_time_ = msg->header.stamp;
 // }
 
-void MpcController::OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){    
+void MpcController::OdomCallback(const nav_msgs::Odometry::ConstSharedPtr& msg){    
     has_odom = true;
 
     now_state.x = msg->pose.pose.position.x;
@@ -94,7 +94,7 @@ void MpcController::OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
 
 }
 
-void MpcController::TrajCallback(const carstatemsgs::Polynome::ConstPtr& msg){
+void MpcController::TrajCallback(const carstatemsgs::Polynome::ConstSharedPtr& msg){
     Eigen::Vector3d start_state(msg->start_position.x, msg->start_position.y, msg->start_position.z);
     Eigen::MatrixXd initstate(2, 3);
     initstate.col(0) << msg->init_p.x, msg->init_p.y;
@@ -118,14 +118,14 @@ void MpcController::TrajCallback(const carstatemsgs::Polynome::ConstPtr& msg){
     new_traj_.setTraj(start_state, initstate, finalstate, InnerPoints, t_pts);
 
     sequencePub();
-    new_traj_start_time_ = msg->traj_start_time.toSec();
+    new_traj_start_time_ = ros::Time(msg->traj_start_time).toSec();
 
     new_traj_.if_get_traj_ = true;
 
     // traj_duration = traj_.get_traj_duration();
     receive_traj_ = true;
     at_goal = false;
-    // start_time = msg->traj_start_time.toSec();
+    // start_time = ros::Time(msg->traj_start_time).toSec();
 }
 
 void MpcController::CmdCallback(const ros::TimerEvent& event){
@@ -141,8 +141,8 @@ void MpcController::CmdCallback(const ros::TimerEvent& event){
 
     if (at_goal){
         carstatemsgs::CarState cmd;
-        cmd.Header.frame_id = "world";
-        cmd.Header.stamp = ros::Time::now();
+        cmd.header.frame_id = "world";
+        cmd.header.stamp = ros::Time::now();
         cmd.v = 0.0;
         cmd.omega = 0.0;
 
@@ -168,8 +168,8 @@ void MpcController::CmdCallback(const ros::TimerEvent& event){
             smooth_yaw();
             getCmd();
             carstatemsgs::CarState cmd;
-            cmd.Header.frame_id = "world";
-            cmd.Header.stamp = ros::Time::now();
+            cmd.header.frame_id = "world";
+            cmd.header.stamp = ros::Time::now();
             cmd.v = output(0, delay_num);
             cmd.omega = output(1, delay_num);
 
@@ -192,8 +192,8 @@ void MpcController::CmdCallback(const ros::TimerEvent& event){
             Eigen::Vector2d curr_v = traj_.getVstate(t_cur);
             Eigen::Vector2d curr_a = traj_.getAstate(t_cur);
 
-            cmd.Header.frame_id = "world";
-            cmd.Header.stamp = ros::Time::now();
+            cmd.header.frame_id = "world";
+            cmd.header.stamp = ros::Time::now();
             cmd.v = curr_v.y();
             cmd.omega = curr_v.x();
 
@@ -613,10 +613,10 @@ void MpcController::getCmd(void)
     }
 }
 
-void MpcController::emergencyStop(const std_msgs::Bool::ConstPtr &msg){
+void MpcController::emergencyStop(const std_msgs::Bool::ConstSharedPtr &msg){
     carstatemsgs::CarState cmd;
-    cmd.Header.frame_id = "world";
-    cmd.Header.stamp = ros::Time::now();
+    cmd.header.frame_id = "world";
+    cmd.header.stamp = ros::Time::now();
     cmd.v = 0.0;
     cmd.omega = 0.0;
 

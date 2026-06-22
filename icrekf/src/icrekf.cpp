@@ -2,7 +2,7 @@
 #include "Eigen/Eigenvalues"
 #include "nav_msgs/Odometry.h"
 
-void ICREKF::PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstPtr &msg){
+void ICREKF::PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstSharedPtr &msg){
 
     if(!if_update_) return;
 
@@ -10,7 +10,7 @@ void ICREKF::PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstPtr &ms
         current_state_ << msg->x, msg->y, msg->yaw;
         current_state_VVXVY_ << msg->v, msg->vx, msg->vy;
         current_state_omega_ = msg->omega;
-        current_time_ = msg->Header.stamp;
+        current_time_ = msg->header.stamp;
 
         x_.head(3) = current_state_;
 
@@ -32,14 +32,14 @@ void ICREKF::PoseSubCallback(const carstatemsgs::SimulatedCarState::ConstPtr &ms
     while(current_state_[2] - x_[2] > M_PI) current_state_[2] -= 2 * M_PI;
     while(current_state_[2] - x_[2] < -M_PI) current_state_[2] += 2 * M_PI;
 
-    current_time_ = msg->Header.stamp;
+    current_time_ = msg->header.stamp;
 // std::cout<<"current_state_: "<<current_state_.transpose()<<std::endl;
     get_update_x(x_, conv_, current_state_);
 }
 
 
 
-void ICREKF::PoseOdomSubCallback(const nav_msgs::Odometry::ConstPtr &msg){
+void ICREKF::PoseOdomSubCallback(const nav_msgs::Odometry::ConstSharedPtr &msg){
     if(!if_update_) return;
 
     if(!get_state_){
@@ -73,24 +73,24 @@ void ICREKF::PoseOdomSubCallback(const nav_msgs::Odometry::ConstPtr &msg){
 }
 
 
-void ICREKF::ControlSubCallback(const carstatemsgs::CarControl::ConstPtr &msg){
+void ICREKF::ControlSubCallback(const carstatemsgs::CarControl::ConstSharedPtr &msg){
     if(!if_update_) return;
 
     if(!get_u_){
         current_u_ << msg->left_wheel_ome, msg->right_wheel_ome;
-        current_u_time_ = msg->Header.stamp;
+        current_u_time_ = msg->header.stamp;
         get_u_ = true;
         
         return;
     }
     if(!get_state_) return;
 // std::cout<<"ControlSubCallback"<<std::endl;
-    pre_u_duration_ = (msg->Header.stamp - current_u_time_).toSec();
+    pre_u_duration_ = (msg->header.stamp - current_u_time_).toSec();
     get_forecast_x(x_, conv_, current_u_, pre_u_duration_);
 
     current_u_ << msg->left_wheel_ome, msg->right_wheel_ome;
     // std::cout<<"current_u_: "<<current_u_.transpose()<<std::endl;
-    current_u_time_ = msg->Header.stamp;
+    current_u_time_ = msg->header.stamp;
 
     if(start_time_ < 0 && current_u_.squaredNorm()>0.1) start_time_ = ros::Time::now().toSec();
 }

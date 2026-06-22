@@ -16,6 +16,8 @@
 #include "carstatemsgs/CarState.h"
 #include "std_msgs/Bool.h"
 #include "carstatemsgs/Polynome.h"
+#include "geometry_msgs/Point.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "mpc_controller/traj_anal.hpp"
 
 #include <pcl/point_cloud.h>
@@ -58,9 +60,9 @@ class MpcController{
         
         ros::Subscriber odom_sub_;
         ros::Subscriber traj_sub_;
-        // void OdomCallback(const carstatemsgs::CarState::ConstPtr& msg);
-        void OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-        void TrajCallback(const carstatemsgs::Polynome::ConstPtr& msg);
+        // void OdomCallback(const carstatemsgs::CarState::ConstSharedPtr& msg);
+        void OdomCallback(const nav_msgs::Odometry::ConstSharedPtr& msg);
+        void TrajCallback(const carstatemsgs::Polynome::ConstSharedPtr& msg);
         ros::Subscriber emergency_stop_sub_;
 
         ros::Publisher sequence_pub_;
@@ -181,7 +183,7 @@ class MpcController{
         // Get a series of reference points for MPC // TBD
         void getRefPoints(const int T, double dt);
 
-        void emergencyStop(const std_msgs::Bool::ConstPtr &msg);
+        void emergencyStop(const std_msgs::Bool::ConstSharedPtr &msg);
 
     public:
         MpcController(const ros::NodeHandle &nh);

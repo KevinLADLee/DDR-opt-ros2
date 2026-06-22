@@ -1,4 +1,4 @@
-std_msgs/Header Header
+std_msgs/Header header
 
 float64 x
 float64 y
@@ -8,8 +8,8 @@ float64 vx
 float64 vy
 float64 v
 
-float64 ICR_yr
-float64 ICR_yl
-float64 ICR_xv
+float64 icr_yr
+float64 icr_yl
+float64 icr_xv
 
 float64 omega

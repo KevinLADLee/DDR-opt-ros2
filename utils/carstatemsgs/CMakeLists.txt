@@ -1,38 +1,23 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(carstatemsgs)
 
+find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
-# set(CMAKE_CXX_FLAGS "-std=c++14")
-# set(CMAKE_BUILD_TYPE "Release")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fPIC")
-
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  message_generation
-  std_msgs
-  geometry_msgs
-)
-
-add_message_files(
-  FILES
-  CarState.msg
-  KinematicState.msg
-  CarControl.msg
-  SimulatedCarState.msg
-  Polynome.msg
-)
-
-generate_messages(
+rosidl_generate_interfaces(${PROJECT_NAME}
+  msg/CarState.msg
+  msg/KinematicState.msg
+  msg/CarControl.msg
+  msg/SimulatedCarState.msg
+  msg/Polynome.msg
   DEPENDENCIES
   std_msgs
   geometry_msgs
+  builtin_interfaces
 )
 
-# find_package(cmake_modules REQUIRED)
-
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES carstatemsgs
- CATKIN_DEPENDS roscpp message_generation std_msgs geometry_msgs
-)
-
+ament_export_dependencies(rosidl_default_runtime)
+ament_package()

@@ -1,6 +1,6 @@
 std_msgs/Header header
 
-time traj_start_time
+builtin_interfaces/Time traj_start_time
 
 geometry_msgs/Vector3[] innerpoints
 float64[] t_pts
@@ -14,4 +14,4 @@ geometry_msgs/Vector3 tail_a
 
 geometry_msgs/Vector3 start_position
 
-geometry_msgs/Vector3 ICR
+geometry_msgs/Vector3 icr

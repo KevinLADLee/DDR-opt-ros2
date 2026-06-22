@@ -21,10 +21,13 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
+#include <geometry_msgs/TransformStamped.h>
 
 #include <carstatemsgs/CarState.h>
 
+#include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2/time.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2_sensor_msgs/tf2_sensor_msgs.h>
 #include <tf/transform_datatypes.h>
@@ -190,8 +193,8 @@ class SDFmap
 
     bool get_grid_map_;
 
-    void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr &msg);
-    // void odomCallback(const carstatemsgs::CarState::ConstPtr &msg);
+    void pointCloudCallback(const sensor_msgs::PointCloud2::ConstSharedPtr &msg);
+    // void odomCallback(const carstatemsgs::CarState::ConstSharedPtr &msg);
 
     void updateOccupancyCallback(const ros::TimerEvent& /*event*/);
     void raycastProcess();
@@ -253,6 +256,8 @@ class SDFmap
     inline Eigen::Vector2i ESDFcoord2gridIndex(const Eigen::Vector2d &pt);
 
     Eigen::Vector2d get_update_odom();
+    bool hasMap() const { return has_map_; }
+    bool hasESDF() const { return has_esdf_; }
 
     inline double normalize_angle(double angle);
 
